@@ -1,0 +1,16 @@
+# Build output
+dist/
+*.exe
+*.zip
+*.pdb
+
+# Temp
+*.locked*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vs/
+*.user
