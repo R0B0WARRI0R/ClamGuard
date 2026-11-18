@@ -1,5 +1,5 @@
 # ClamGuard
-
+![Captura del proyecto](https://github.com/davidcasascompetenciadigital-prog/ClamGuard/blob/main/captura-clamguard.png?raw=true)
 ClamGuard es una interfaz gráfica gratuita para Windows que envuelve el motor
 antivirus libre **ClamAV** y su actualizador **freshclam**. Incluye análisis bajo
 demanda y una protección residente que analiza en segundo plano los archivos
