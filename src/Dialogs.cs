@@ -1625,6 +1625,8 @@ namespace ClamGuard
         private ProgressBarEx _bar;
         private RoundedButton _btnUpdate;
         private RoundedButton _btnScan;
+        private RoundedButton _btnCancel;
+        private CancellationTokenSource _cts;
         private bool _running;
 
         public IocDialog()
@@ -1661,6 +1663,17 @@ namespace ClamGuard
             subtitle.Size = new Size(772, 32);
             Controls.Add(subtitle);
 
+            Label concept = new Label();
+            concept.Text = "Los Indicadores de Compromiso (IOC) son patrones (hashes, nombres de archivo, dominios, procesos) asociados a malware o spyware conocido. " +
+                "ClamGuard descarga listas publicas (STIX2), las actualiza y las compara con tu equipo para detectar posibles infecciones que un antivirus tradicional puede pasar por alto.";
+            concept.Font = Theme.Ui(8.5f, FontStyle.Regular);
+            concept.ForeColor = Theme.TextMuted;
+            concept.BackColor = Theme.Surface;
+            concept.AutoSize = false;
+            concept.Location = new Point(24, 80);
+            concept.Size = new Size(772, 44);
+            Controls.Add(concept);
+
             Label info = new Label();
             info.Text = "IOCs disponibles localmente: " + IocStore.LocalIndicatorCount();
             info.Font = Theme.Ui(9f, FontStyle.Regular);
@@ -1676,13 +1689,13 @@ namespace ClamGuard
             _lblStatus.ForeColor = Theme.TextSecondary;
             _lblStatus.BackColor = Theme.Surface;
             _lblStatus.AutoSize = false;
-            _lblStatus.Location = new Point(24, 106);
+            _lblStatus.Location = new Point(24, 152);
             _lblStatus.Size = new Size(772, 20);
             Controls.Add(_lblStatus);
 
             _bar = new ProgressBarEx();
             _bar.BackColor = Theme.Surface;
-            _bar.Location = new Point(24, 130);
+            _bar.Location = new Point(24, 176);
             _bar.Size = new Size(772, 8);
             _bar.IsIndeterminate = true;
             _bar.Visible = false;
@@ -1693,7 +1706,7 @@ namespace ClamGuard
             _btnUpdate.Style = ButtonStyle.Primary;
             _btnUpdate.BackColor = Theme.Surface;
             _btnUpdate.Size = new Size(150, 34);
-            _btnUpdate.Location = new Point(24, 150);
+            _btnUpdate.Location = new Point(24, 196);
             _btnUpdate.Click += Update_Click;
             Controls.Add(_btnUpdate);
 
@@ -1702,14 +1715,24 @@ namespace ClamGuard
             _btnScan.Style = ButtonStyle.Secondary;
             _btnScan.BackColor = Theme.Surface;
             _btnScan.Size = new Size(170, 34);
-            _btnScan.Location = new Point(186, 150);
+            _btnScan.Location = new Point(186, 196);
             _btnScan.Click += Scan_Click;
             Controls.Add(_btnScan);
 
+            _btnCancel = new RoundedButton();
+            _btnCancel.Text = "Detener busqueda";
+            _btnCancel.Style = ButtonStyle.Secondary;
+            _btnCancel.BackColor = Theme.Surface;
+            _btnCancel.Size = new Size(150, 34);
+            _btnCancel.Location = new Point(368, 196);
+            _btnCancel.Click += Cancel_Click;
+            _btnCancel.Enabled = false;
+            Controls.Add(_btnCancel);
+
             _results = new ListBox();
             _results.Font = Theme.Ui(8.5f, FontStyle.Regular);
-            _results.Location = new Point(24, 196);
-            _results.Size = new Size(772, 380);
+            _results.Location = new Point(24, 242);
+            _results.Size = new Size(772, 360);
             _results.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(_results);
 
@@ -1719,7 +1742,7 @@ namespace ClamGuard
             note.ForeColor = Theme.TextMuted;
             note.BackColor = Theme.Surface;
             note.AutoSize = false;
-            note.Location = new Point(24, 582);
+            note.Location = new Point(24, 610);
             note.Size = new Size(772, 28);
             note.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             Controls.Add(note);
@@ -1761,6 +1784,7 @@ namespace ClamGuard
                 return;
             }
             _running = true;
+            _cts = new CancellationTokenSource();
             SetRunning(true);
             _lblStatus.Text = "Buscando IOCs...";
             _results.Items.Clear();
@@ -1770,16 +1794,18 @@ namespace ClamGuard
                 Progress<IocProgress> progress = new Progress<IocProgress>(OnProgress);
                 matches = await Task.Run(delegate
                 {
-                    return IocStore.Search(progress, CancellationToken.None,
+                    return IocStore.Search(progress, _cts.Token,
                         new Action<LogLevel, string>(Log), null);
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, "Buscar IOCs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (!(_cts != null && _cts.IsCancellationRequested))
+                    MessageBox.Show(this, ex.Message, "Buscar IOCs", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             SetRunning(false);
             _running = false;
+            _btnCancel.Enabled = false;
 
             if (matches != null)
             {
@@ -1798,12 +1824,29 @@ namespace ClamGuard
                 }
                 _lblStatus.Text = "Busqueda completada: " + (matches == null ? 0 : matches.Count) + " coincidencia(s).";
             }
+            else if (_cts != null && _cts.IsCancellationRequested)
+            {
+                _lblStatus.Text = "Busqueda cancelada por el usuario.";
+                _results.Items.Add("Busqueda cancelada.");
+            }
+
+            if (_cts != null) { _cts.Dispose(); _cts = null; }
+        }
+
+        private void Cancel_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_cts != null) _cts.Cancel();
+            }
+            catch { }
         }
 
         private void SetRunning(bool running)
         {
             _btnUpdate.Enabled = !running;
             _btnScan.Enabled = !running;
+            _btnCancel.Enabled = running;
             _bar.Visible = running;
             Cursor = running ? Cursors.WaitCursor : Cursors.Default;
             if (running) _bar.IsIndeterminate = true;

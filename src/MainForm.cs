@@ -31,6 +31,7 @@ namespace ClamGuard
         private RoundedButton _btnQuick;
         private RoundedButton _btnResident;
         private RoundedButton _btnSignatures;
+        private RoundedButton _btnIoc;
         private RoundedButton _btnStop;
         private LinkLabel _lnkChoose;
         private LinkLabel _lnkFolders;
@@ -426,21 +427,24 @@ namespace ClamGuard
             cards.Dock = DockStyle.Fill;
             cards.BackColor = Theme.Background;
             cards.Margin = new Padding(0);
-            cards.ColumnCount = 3;
+            cards.ColumnCount = 4;
             cards.RowCount = 1;
-            for (int i = 0; i < 3; i++)
-                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            for (int i = 0; i < 4; i++)
+                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
             cards.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             CardPanel scanCard = BuildScanCard();
-            scanCard.Margin = new Padding(0, 0, 16, 0);
+            scanCard.Margin = new Padding(0, 0, 12, 0);
             CardPanel residentCard = BuildResidentCard();
-            residentCard.Margin = new Padding(0, 0, 16, 0);
+            residentCard.Margin = new Padding(0, 0, 12, 0);
             CardPanel signatureCard = BuildSignatureCard();
-            signatureCard.Margin = new Padding(0, 0, 0, 0);
+            signatureCard.Margin = new Padding(0, 0, 12, 0);
+            CardPanel iocCard = BuildIocCard();
+            iocCard.Margin = new Padding(0, 0, 0, 0);
             cards.Controls.Add(scanCard, 0, 0);
             cards.Controls.Add(residentCard, 1, 0);
             cards.Controls.Add(signatureCard, 2, 0);
+            cards.Controls.Add(iocCard, 3, 0);
             _root.Controls.Add(cards, 0, 1);
 
             CardPanel activity = BuildActivityCard();
@@ -690,6 +694,26 @@ namespace ClamGuard
             card.Controls.Add(_lnkSigInfo);
 
             card.Resize += delegate { _btnSignatures.Width = Math.Max(100, card.ClientSize.Width - 40); };
+            return card;
+        }
+
+        private CardPanel BuildIocCard()
+        {
+            Label status;
+            CardPanel card = CreateBaseCard(Theme.GlyphInfo, Theme.AccentSoft, Theme.Accent,
+                "Indicadores de compromiso", "Busca IOCs (STIX2) en el equipo.", out status);
+            status.Text = "IOCs disponibles: " + IocStore.LocalIndicatorCount();
+
+            _btnIoc = new RoundedButton();
+            _btnIoc.Text = "Buscar IOCs";
+            _btnIoc.Style = ButtonStyle.Primary;
+            _btnIoc.Location = new Point(20, 160);
+            _btnIoc.Height = 38;
+            _btnIoc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _btnIoc.Click += delegate { ShowIoc(); };
+            card.Controls.Add(_btnIoc);
+
+            card.Resize += delegate { _btnIoc.Width = Math.Max(100, card.ClientSize.Width - 40); };
             return card;
         }
 
@@ -1083,6 +1107,7 @@ namespace ClamGuard
             _btnQuick.Enabled = !busy;
             _btnSignatures.Enabled = !busy;
             _btnResident.Enabled = !busy;
+            if (_btnIoc != null) _btnIoc.Enabled = !busy;
             _bannerButton.Enabled = !busy;
             _lnkChoose.Enabled = !busy;
             _lnkFolders.Enabled = !busy;
