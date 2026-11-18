@@ -1855,7 +1855,10 @@ namespace ClamGuard
         private void OnProgress(IocProgress value)
         {
             if (value == null || IsDisposed) return;
-            if (!string.IsNullOrEmpty(value.Stage)) _lblStatus.Text = value.Stage;
+            string text = value.Stage;
+            if (!string.IsNullOrEmpty(value.CurrentItem))
+                text = text + " - " + value.CurrentItem;
+            if (!string.IsNullOrEmpty(text)) _lblStatus.Text = text;
             _bar.IsIndeterminate = value.Indeterminate;
             if (!value.Indeterminate) _bar.Value = value.Percent;
         }

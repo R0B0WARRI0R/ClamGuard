@@ -32,6 +32,7 @@ namespace ClamGuard
         public bool Indeterminate;
         public long Current;
         public long Total;
+        public string CurrentItem = string.Empty;
     }
 
     public static class IocStore
@@ -250,6 +251,7 @@ namespace ClamGuard
                     try
                     {
                         string name = p.ProcessName;
+                        Report(progress, "Analizando procesos en ejecucion...", 25, true, name + " (PID " + p.Id + ")");
                         CheckIndicator(matches, byType, "process:name", name, "Proceso: " + name + " (PID " + p.Id + ")", indicators);
                         try
                         {
@@ -299,6 +301,7 @@ namespace ClamGuard
                         if (token.IsCancellationRequested) break;
                         try
                         {
+                            Report(progress, "Analizando archivos...", 50, true, file);
                             string name = Path.GetFileName(file);
                             CheckIndicator(matches, byType, "file:name", name, file, indicators);
                             CheckIndicator(matches, byType, "file:path", file, file, indicators);
@@ -542,11 +545,17 @@ namespace ClamGuard
 
         private static void Report(IProgress<IocProgress> progress, string stage, int percent, bool indeterminate)
         {
+            Report(progress, stage, percent, indeterminate, string.Empty);
+        }
+
+        private static void Report(IProgress<IocProgress> progress, string stage, int percent, bool indeterminate, string currentItem)
+        {
             if (progress == null) return;
             IocProgress p = new IocProgress();
             p.Stage = stage;
             p.Percent = percent;
             p.Indeterminate = indeterminate;
+            p.CurrentItem = currentItem ?? string.Empty;
             try { progress.Report(p); } catch { }
         }
 
