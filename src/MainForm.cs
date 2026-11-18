@@ -493,7 +493,7 @@ namespace ClamGuard
 
             FlowLayoutPanel links = new FlowLayoutPanel();
             links.Dock = DockStyle.Right;
-            links.Width = 380;
+            links.Width = 460;
             links.FlowDirection = FlowDirection.RightToLeft;
             links.WrapContents = false;
             links.BackColor = Theme.Surface;
@@ -503,8 +503,9 @@ namespace ClamGuard
             LinkLabel about = Links.Create("Acerca de", delegate { ShowAbout(); });
             LinkLabel quarantine = Links.Create("Cuarentena", delegate { ShowQuarantine(); });
             LinkLabel settings = Links.Create("Configuración", delegate { ShowSettings(); });
+            LinkLabel ioc = Links.Create("IOCs", delegate { ShowIoc(); });
             LinkLabel uninstall = Links.Create("Desinstalar", delegate { ShowUninstall(); });
-            foreach (LinkLabel link in new LinkLabel[] { about, quarantine, settings, uninstall })
+            foreach (LinkLabel link in new LinkLabel[] { about, quarantine, settings, ioc, uninstall })
             {
                 link.BackColor = Theme.Surface;
                 link.Margin = new Padding(16, 0, 0, 0);
@@ -1595,6 +1596,15 @@ namespace ClamGuard
                 dialog.ShowDialog(this);
             }
             RefreshStatusAsync();
+        }
+
+        private void ShowIoc()
+        {
+            if (_busy) return;
+            using (IocDialog dialog = new IocDialog())
+            {
+                dialog.ShowDialog(this);
+            }
         }
 
         private void ShowSignatureDetails()

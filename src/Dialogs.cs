@@ -1614,4 +1614,222 @@ namespace ClamGuard
             return paths;
         }
     }
+
+    /// <summary>
+    /// Búsqueda de Indicadores de Compromiso (IOC) en formato STIX2.
+    /// </summary>
+    public sealed class IocDialog : Form
+    {
+        private ListBox _results;
+        private Label _lblStatus;
+        private ProgressBarEx _bar;
+        private RoundedButton _btnUpdate;
+        private RoundedButton _btnScan;
+        private bool _running;
+
+        public IocDialog()
+        {
+            BuildUi();
+        }
+
+        private void BuildUi()
+        {
+            Text = "Indicadores de compromiso (IOC)";
+            ClientSize = new Size(820, 620);
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MinimumSize = new Size(700, 500);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = Theme.Surface;
+            Font = Theme.Ui(9f, FontStyle.Regular);
+
+            Label title = new Label();
+            title.Text = "Indicadores de compromiso (IOC)";
+            title.Font = Theme.Ui(14f, FontStyle.Bold);
+            title.ForeColor = Theme.TextPrimary;
+            title.BackColor = Theme.Surface;
+            title.AutoSize = true;
+            title.Location = new Point(24, 16);
+            Controls.Add(title);
+
+            Label subtitle = new Label();
+            subtitle.Text = "Descarga la base publica de IOCs (STIX2) y busca coincidencias en procesos, archivos, dominios y registro.";
+            subtitle.Font = Theme.Ui(8.75f, FontStyle.Regular);
+            subtitle.ForeColor = Theme.TextSecondary;
+            subtitle.BackColor = Theme.Surface;
+            subtitle.AutoSize = false;
+            subtitle.Location = new Point(24, 44);
+            subtitle.Size = new Size(772, 32);
+            Controls.Add(subtitle);
+
+            Label info = new Label();
+            info.Text = "IOCs disponibles localmente: " + IocStore.LocalIndicatorCount();
+            info.Font = Theme.Ui(9f, FontStyle.Regular);
+            info.ForeColor = Theme.TextMuted;
+            info.BackColor = Theme.Surface;
+            info.AutoSize = true;
+            info.Location = new Point(24, 82);
+            Controls.Add(info);
+
+            _lblStatus = new Label();
+            _lblStatus.Text = "Listo.";
+            _lblStatus.Font = Theme.Ui(9f, FontStyle.Regular);
+            _lblStatus.ForeColor = Theme.TextSecondary;
+            _lblStatus.BackColor = Theme.Surface;
+            _lblStatus.AutoSize = false;
+            _lblStatus.Location = new Point(24, 106);
+            _lblStatus.Size = new Size(772, 20);
+            Controls.Add(_lblStatus);
+
+            _bar = new ProgressBarEx();
+            _bar.BackColor = Theme.Surface;
+            _bar.Location = new Point(24, 130);
+            _bar.Size = new Size(772, 8);
+            _bar.IsIndeterminate = true;
+            _bar.Visible = false;
+            Controls.Add(_bar);
+
+            _btnUpdate = new RoundedButton();
+            _btnUpdate.Text = "Actualizar IOCs";
+            _btnUpdate.Style = ButtonStyle.Primary;
+            _btnUpdate.BackColor = Theme.Surface;
+            _btnUpdate.Size = new Size(150, 34);
+            _btnUpdate.Location = new Point(24, 150);
+            _btnUpdate.Click += Update_Click;
+            Controls.Add(_btnUpdate);
+
+            _btnScan = new RoundedButton();
+            _btnScan.Text = "Buscar en el equipo";
+            _btnScan.Style = ButtonStyle.Secondary;
+            _btnScan.BackColor = Theme.Surface;
+            _btnScan.Size = new Size(170, 34);
+            _btnScan.Location = new Point(186, 150);
+            _btnScan.Click += Scan_Click;
+            Controls.Add(_btnScan);
+
+            _results = new ListBox();
+            _results.Font = Theme.Ui(8.5f, FontStyle.Regular);
+            _results.Location = new Point(24, 196);
+            _results.Size = new Size(772, 380);
+            _results.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            Controls.Add(_results);
+
+            Label note = new Label();
+            note.Text = "La busqueda revisa procesos en ejecucion, archivos en Escritorio/Documentos/Temp/Inicio, cache DNS y claves de inicio del registro.";
+            note.Font = Theme.Ui(8.25f, FontStyle.Regular);
+            note.ForeColor = Theme.TextMuted;
+            note.BackColor = Theme.Surface;
+            note.AutoSize = false;
+            note.Location = new Point(24, 582);
+            note.Size = new Size(772, 28);
+            note.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            Controls.Add(note);
+        }
+
+        private async void Update_Click(object sender, EventArgs e)
+        {
+            if (_running) return;
+            _running = true;
+            SetRunning(true);
+            _lblStatus.Text = "Descargando IOCs...";
+            _results.Items.Clear();
+            int downloaded = 0;
+            try
+            {
+                Progress<IocProgress> progress = new Progress<IocProgress>(OnProgress);
+                downloaded = await Task.Run(delegate
+                {
+                    return IocStore.DownloadAll(progress, CancellationToken.None,
+                        new Action<LogLevel, string>(Log));
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Actualizar IOCs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            SetRunning(false);
+            _running = false;
+            _lblStatus.Text = "Descarga completada: " + downloaded + " archivo(s). IOCs disponibles: " + IocStore.LocalIndicatorCount();
+        }
+
+        private async void Scan_Click(object sender, EventArgs e)
+        {
+            if (_running) return;
+            if (IocStore.LocalIndicatorCount() == 0)
+            {
+                MessageBox.Show(this, "No hay IOCs descargados. Pulsa «Actualizar IOCs» primero.",
+                    "Buscar IOCs", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            _running = true;
+            SetRunning(true);
+            _lblStatus.Text = "Buscando IOCs...";
+            _results.Items.Clear();
+            List<IocMatch> matches = null;
+            try
+            {
+                Progress<IocProgress> progress = new Progress<IocProgress>(OnProgress);
+                matches = await Task.Run(delegate
+                {
+                    return IocStore.Search(progress, CancellationToken.None,
+                        new Action<LogLevel, string>(Log), null);
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Buscar IOCs", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            SetRunning(false);
+            _running = false;
+
+            if (matches != null)
+            {
+                if (matches.Count == 0)
+                {
+                    _results.Items.Add("No se encontraron indicadores de compromiso.");
+                }
+                else
+                {
+                    for (int i = 0; i < matches.Count; i++)
+                    {
+                        IocMatch m = matches[i];
+                        _results.Items.Add("[" + m.Type + "] " + m.Indicator + " -> " + m.Location +
+                            (string.IsNullOrEmpty(m.Source) ? string.Empty : " (" + m.Source + ")"));
+                    }
+                }
+                _lblStatus.Text = "Busqueda completada: " + (matches == null ? 0 : matches.Count) + " coincidencia(s).";
+            }
+        }
+
+        private void SetRunning(bool running)
+        {
+            _btnUpdate.Enabled = !running;
+            _btnScan.Enabled = !running;
+            _bar.Visible = running;
+            Cursor = running ? Cursors.WaitCursor : Cursors.Default;
+            if (running) _bar.IsIndeterminate = true;
+        }
+
+        private void OnProgress(IocProgress value)
+        {
+            if (value == null || IsDisposed) return;
+            if (!string.IsNullOrEmpty(value.Stage)) _lblStatus.Text = value.Stage;
+            _bar.IsIndeterminate = value.Indeterminate;
+            if (!value.Indeterminate) _bar.Value = value.Percent;
+        }
+
+        private void Log(LogLevel level, string message)
+        {
+            try { AppLog.Write(level, message); } catch { }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (_running)
+            {
+                e.Cancel = true;
+                return;
+            }
+            base.OnFormClosing(e);
+        }
+    }
 }
