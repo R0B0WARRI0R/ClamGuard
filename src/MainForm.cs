@@ -32,6 +32,7 @@ namespace ClamGuard
         private RoundedButton _btnResident;
         private RoundedButton _btnSignatures;
         private RoundedButton _btnIoc;
+        private RoundedButton _btnFirewall;
         private RoundedButton _btnStop;
         private LinkLabel _lnkChoose;
         private LinkLabel _lnkFolders;
@@ -79,6 +80,33 @@ namespace ClamGuard
                 Task.Run(delegate
                 {
                     Defender.RecoverIfNeeded(new Action<LogLevel, string>(LogFromAnyThread));
+                });
+                Task.Run(delegate
+                {
+                    UpdateInfo info = UpdateChecker.Check();
+                    if (info != null && !IsDisposed)
+                    {
+                        LogFromAnyThread(LogLevel.Ok, "Nueva version disponible: " + info.Version);
+                        BeginInvoke(new Action(delegate
+                        {
+                            DialogResult answer = MessageBox.Show(this,
+                                "Hay una nueva version disponible: " + info.Version + "\n\n¿Deseas descargarla?",
+                                "Actualizacion disponible", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                            if (answer == DialogResult.Yes)
+                            {
+                                try
+                                {
+                                    string url = string.IsNullOrEmpty(info.DownloadUrl) ? info.ReleaseUrl : info.DownloadUrl;
+                                    if (!string.IsNullOrEmpty(url)) Process.Start(url);
+                                }
+                                catch { }
+                            }
+                        }));
+                    }
+                    else
+                    {
+                        LogFromAnyThread(LogLevel.Info, "No hay actualizaciones disponibles.");
+                    }
                 });
 
                 if (_startUninstall)
@@ -427,24 +455,27 @@ namespace ClamGuard
             cards.Dock = DockStyle.Fill;
             cards.BackColor = Theme.Background;
             cards.Margin = new Padding(0);
-            cards.ColumnCount = 4;
+            cards.ColumnCount = 5;
             cards.RowCount = 1;
-            for (int i = 0; i < 4; i++)
-                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            for (int i = 0; i < 5; i++)
+                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
             cards.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             CardPanel scanCard = BuildScanCard();
-            scanCard.Margin = new Padding(0, 0, 12, 0);
+            scanCard.Margin = new Padding(0, 0, 10, 0);
             CardPanel residentCard = BuildResidentCard();
-            residentCard.Margin = new Padding(0, 0, 12, 0);
+            residentCard.Margin = new Padding(0, 0, 10, 0);
             CardPanel signatureCard = BuildSignatureCard();
-            signatureCard.Margin = new Padding(0, 0, 12, 0);
+            signatureCard.Margin = new Padding(0, 0, 10, 0);
             CardPanel iocCard = BuildIocCard();
-            iocCard.Margin = new Padding(0, 0, 0, 0);
+            iocCard.Margin = new Padding(0, 0, 10, 0);
+            CardPanel firewallCard = BuildFirewallCard();
+            firewallCard.Margin = new Padding(0, 0, 0, 0);
             cards.Controls.Add(scanCard, 0, 0);
             cards.Controls.Add(residentCard, 1, 0);
             cards.Controls.Add(signatureCard, 2, 0);
             cards.Controls.Add(iocCard, 3, 0);
+            cards.Controls.Add(firewallCard, 4, 0);
             _root.Controls.Add(cards, 0, 1);
 
             CardPanel activity = BuildActivityCard();
@@ -497,7 +528,7 @@ namespace ClamGuard
 
             FlowLayoutPanel links = new FlowLayoutPanel();
             links.Dock = DockStyle.Right;
-            links.Width = 460;
+            links.Width = 620;
             links.FlowDirection = FlowDirection.RightToLeft;
             links.WrapContents = false;
             links.BackColor = Theme.Surface;
@@ -508,8 +539,10 @@ namespace ClamGuard
             LinkLabel quarantine = Links.Create("Cuarentena", delegate { ShowQuarantine(); });
             LinkLabel settings = Links.Create("Configuración", delegate { ShowSettings(); });
             LinkLabel ioc = Links.Create("IOCs", delegate { ShowIoc(); });
+            LinkLabel firewall = Links.Create("Firewall", delegate { ShowFirewall(); });
+            LinkLabel updates = Links.Create("Actualizaciones", delegate { CheckUpdates(); });
             LinkLabel uninstall = Links.Create("Desinstalar", delegate { ShowUninstall(); });
-            foreach (LinkLabel link in new LinkLabel[] { about, quarantine, settings, ioc, uninstall })
+            foreach (LinkLabel link in new LinkLabel[] { about, quarantine, settings, ioc, firewall, updates, uninstall })
             {
                 link.BackColor = Theme.Surface;
                 link.Margin = new Padding(16, 0, 0, 0);
@@ -714,6 +747,26 @@ namespace ClamGuard
             card.Controls.Add(_btnIoc);
 
             card.Resize += delegate { _btnIoc.Width = Math.Max(100, card.ClientSize.Width - 40); };
+            return card;
+        }
+
+        private CardPanel BuildFirewallCard()
+        {
+            Label status;
+            CardPanel card = CreateBaseCard(Theme.GlyphShield, Theme.DangerSoft, Theme.Danger,
+                "Cortafuegos", "Administra el firewall de Windows.", out status);
+            status.Text = "Modo activo por defecto";
+
+            _btnFirewall = new RoundedButton();
+            _btnFirewall.Text = "Abrir cortafuegos";
+            _btnFirewall.Style = ButtonStyle.Primary;
+            _btnFirewall.Location = new Point(20, 160);
+            _btnFirewall.Height = 38;
+            _btnFirewall.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _btnFirewall.Click += delegate { ShowFirewall(); };
+            card.Controls.Add(_btnFirewall);
+
+            card.Resize += delegate { _btnFirewall.Width = Math.Max(100, card.ClientSize.Width - 40); };
             return card;
         }
 
@@ -1108,6 +1161,7 @@ namespace ClamGuard
             _btnSignatures.Enabled = !busy;
             _btnResident.Enabled = !busy;
             if (_btnIoc != null) _btnIoc.Enabled = !busy;
+            if (_btnFirewall != null) _btnFirewall.Enabled = !busy;
             _bannerButton.Enabled = !busy;
             _lnkChoose.Enabled = !busy;
             _lnkFolders.Enabled = !busy;
@@ -1629,6 +1683,54 @@ namespace ClamGuard
             using (IocDialog dialog = new IocDialog())
             {
                 dialog.ShowDialog(this);
+            }
+        }
+
+        private void ShowFirewall()
+        {
+            if (_busy) return;
+            using (FirewallDialog dialog = new FirewallDialog())
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
+        private void CheckUpdates()
+        {
+            if (_busy) return;
+            SetBusy(true, "Buscando actualizaciones...", false);
+            AppendLog(LogLevel.Info, "Comprobando actualizaciones en GitHub...");
+            UpdateInfo info = null;
+            try
+            {
+                info = Task.Run(delegate { return UpdateChecker.Check(); }).Result;
+            }
+            catch { }
+            SetBusy(false, "Listo.", false);
+            if (info == null)
+            {
+                AppendLog(LogLevel.Info, "No hay actualizaciones disponibles.");
+                MessageBox.Show(this, "No hay actualizaciones disponibles o no se pudo consultar GitHub.",
+                    "Actualizaciones", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            AppendLog(LogLevel.Ok, "Nueva version disponible: " + info.Version);
+            DialogResult answer = MessageBox.Show(this,
+                "Hay una nueva version disponible: " + info.Version + "\n\n" +
+                (string.IsNullOrEmpty(info.Notes) ? string.Empty : info.Notes + "\n\n") +
+                "¿Deseas descargarla ahora?",
+                "Actualizacion disponible", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (answer == DialogResult.Yes)
+            {
+                try
+                {
+                    string url = string.IsNullOrEmpty(info.DownloadUrl) ? info.ReleaseUrl : info.DownloadUrl;
+                    if (!string.IsNullOrEmpty(url)) Process.Start(url);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, "Actualizaciones", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

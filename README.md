@@ -158,6 +158,17 @@ ClamAV y freshclam son proyectos de Cisco Talos y se distribuyen bajo su propia
 licencia. ClamGuard no incluye el motor ni las firmas: los descarga desde las
 fuentes oficiales.
 
+## Actualizaciones
+
+ClamGuard comprueba automáticamente al iniciar si hay una nueva versión en GitHub Releases.
+Si existe, avisa al usuario y permite descargarla. También se puede comprobar manualmente
+desde el enlace «Actualizaciones» de la cabecera.
+
+- **David Casas M**
+- GitHub: https://github.com/davidcasascompetenciadigital-prog
+- YouTube: Competencia_Digital
+- Twitch: davidcasasm
+
 ## Compilación
 
 El proyecto usa C# para .NET Framework 4.8 y se compila con el `csc.exe` incluido
@@ -180,7 +191,27 @@ al descargarlo o ejecutarlo por primera vez. Para distribuirlo de forma pública
 firma `ClamGuard.exe` con un certificado de firma de código y conserva el
 manifiesto UAC.
 
-## Desinstalación
+## Indicadores de compromiso (IOC)
+
+ClamGuard incluye un módulo para buscar **Indicadores de Compromiso** en el equipo,
+descargando bases públicas en formato **STIX2** (repositorios como `mvt-indicators`,
+AmnestyTech, etc.) y comparándolas con procesos, archivos, caché DNS y claves de
+inicio del registro.
+
+- **Actualizar IOCs**: descarga/actualiza la base local desde internet.
+- **Buscar en el equipo**: muestra en tiempo real cada elemento analizado y lista
+  las coincidencias.
+- Los IOCs cubren spyware (Pegasus, Predator, stalkerware, etc.) y otras amenazas.
+
+## Cortafuegos de Windows
+
+Administrador sencillo del firewall de Windows (similar a TinyWall):
+
+- **Modos**: Activo (recomendado), Permitir todo el tráfico, Bloquear todo el tráfico.
+- **Programas**: añadir/quitar ejecutables de la lista de excepciones.
+- **Puertos**: abrir/cerrar puertos TCP o UDP, listar abiertos/cerrados/todos y editar.
+
+Requiere permisos de administrador para aplicar cambios.
 
 ClamGuard incluye una desinstalación completa que elimina el programa, el motor
 ClamAV, el servicio residente, las firmas, los registros, la configuración, las
