@@ -215,9 +215,12 @@ namespace ClamGuard
             clamd.AppendLine("TCPAddr 127.0.0.1");
             clamd.AppendLine("MaxThreads 4");
             clamd.AppendLine("MaxConnectionQueueLength 20");
-            clamd.AppendLine("StreamMaxLength 200M");
-            clamd.AppendLine("MaxScanSize 400M");
-            clamd.AppendLine("MaxFileSize 200M");
+            int maxMB = settings.MaxScanFileSizeMB;
+            if (maxMB < 1) maxMB = 200;
+            string maxStr = maxMB.ToString(System.Globalization.CultureInfo.InvariantCulture) + "M";
+            clamd.AppendLine("StreamMaxLength " + maxStr);
+            clamd.AppendLine("MaxScanSize " + maxStr);
+            clamd.AppendLine("MaxFileSize " + maxStr);
             clamd.AppendLine("MaxRecursion 12");
             clamd.AppendLine("ReadTimeout 300");
             clamd.AppendLine("CommandReadTimeout 30");

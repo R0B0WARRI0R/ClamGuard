@@ -188,7 +188,7 @@ namespace ClamGuard
                 exe = Path.Combine(dir, "clamscan.exe");
                 engine = "clamscan";
                 arguments.Append("--stdout --database=").Append(Cmd.Quote(AppPaths.DatabaseDir));
-                arguments.Append(" --max-filesize=200M --max-scansize=400M --max-recursion=12");
+                arguments.Append(" --max-filesize=").Append(settings.MaxScanFileSizeMB).Append("M --max-scansize=").Append(settings.MaxScanFileSizeMB * 2).Append("M --max-recursion=12");
                 arguments.Append(" --file-list=").Append(Cmd.Quote(listPath));
             }
 

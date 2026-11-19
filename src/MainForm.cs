@@ -696,7 +696,7 @@ namespace ClamGuard
             _btnResident.Click += Resident_Click;
             card.Controls.Add(_btnResident);
 
-            _lnkFolders = Links.Create("Configurar carpetas vigiladas", ShowSettings);
+            _lnkFolders = Links.Create("Configurar carpetas vigiladas", delegate { ShowSettings(1); });
             _lnkFolders.BackColor = Theme.Surface;
             _lnkFolders.Location = new Point(20, 201);
             card.Controls.Add(_lnkFolders);
@@ -1621,11 +1621,13 @@ namespace ClamGuard
             ShowSettings();
         }
 
-        private void ShowSettings()
+        private void ShowSettings() { ShowSettings(0); }
+
+        private void ShowSettings(int tabIndex)
         {
             if (_busy) return;
             bool requestUninstall = false;
-            using (SettingsDialog dialog = new SettingsDialog(_settings))
+            using (SettingsDialog dialog = new SettingsDialog(_settings, tabIndex))
             {
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {

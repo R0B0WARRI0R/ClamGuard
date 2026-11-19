@@ -968,14 +968,21 @@ namespace ClamGuard
         private ComboBox _cboAction;
         private NumericUpDown _numInterval;
         private NumericUpDown _numPort;
+        private NumericUpDown _numMaxFile;
         private ListBox _lstMonitor;
         private ListBox _lstQuick;
         private Label _lblServiceState;
+        private int _selectedTab;
         private bool _requestUninstall;
 
-        public SettingsDialog(AppSettings settings)
+        public SettingsDialog(AppSettings settings) : this(settings, 0)
+        {
+        }
+
+        public SettingsDialog(AppSettings settings, int selectedTab)
         {
             _settings = settings;
+            _selectedTab = selectedTab;
             BuildUi();
         }
 
@@ -1020,6 +1027,9 @@ namespace ClamGuard
             maintenance.Padding = new Padding(18);
             tabs.TabPages.Add(maintenance);
             BuildMaintenanceTab(maintenance);
+
+            if (_selectedTab >= 0 && _selectedTab < tabs.TabPages.Count)
+                tabs.SelectedIndex = _selectedTab;
 
             Panel bottom = new Panel();
             bottom.Dock = DockStyle.Bottom;
@@ -1172,13 +1182,40 @@ namespace ClamGuard
             _chkPauseDefender.Location = new Point(0, 220);
             page.Controls.Add(_chkPauseDefender);
 
+            Label maxFileLabel = new Label();
+            maxFileLabel.Text = "No analizar archivos mayores de:";
+            maxFileLabel.Font = Theme.Ui(9f, FontStyle.Regular);
+            maxFileLabel.ForeColor = Theme.TextPrimary;
+            maxFileLabel.BackColor = Theme.Surface;
+            maxFileLabel.AutoSize = true;
+            maxFileLabel.Location = new Point(0, 260);
+            page.Controls.Add(maxFileLabel);
+
+            _numMaxFile = new NumericUpDown();
+            _numMaxFile.Minimum = 1;
+            _numMaxFile.Maximum = 4096;
+            _numMaxFile.Value = Math.Max(1, Math.Min(4096, _settings.MaxScanFileSizeMB));
+            _numMaxFile.Font = Theme.Ui(9f, FontStyle.Regular);
+            _numMaxFile.Location = new Point(232, 256);
+            _numMaxFile.Width = 80;
+            page.Controls.Add(_numMaxFile);
+
+            Label maxFileUnit = new Label();
+            maxFileUnit.Text = "MB (0 = ilimitado no permitido)";
+            maxFileUnit.Font = Theme.Ui(8.5f, FontStyle.Regular);
+            maxFileUnit.ForeColor = Theme.TextSecondary;
+            maxFileUnit.BackColor = Theme.Surface;
+            maxFileUnit.AutoSize = true;
+            maxFileUnit.Location = new Point(320, 260);
+            page.Controls.Add(maxFileUnit);
+
             Label actionLabel = new Label();
             actionLabel.Text = "Cuando se detecte una amenaza:";
             actionLabel.Font = Theme.Ui(9f, FontStyle.Regular);
             actionLabel.ForeColor = Theme.TextPrimary;
             actionLabel.BackColor = Theme.Surface;
             actionLabel.AutoSize = true;
-            actionLabel.Location = new Point(0, 258);
+            actionLabel.Location = new Point(0, 300);
             page.Controls.Add(actionLabel);
 
             _cboAction = new ComboBox();
@@ -1187,7 +1224,7 @@ namespace ClamGuard
             _cboAction.Items.Add("Poner en cuarentena (recomendado)");
             _cboAction.Items.Add("Eliminar permanentemente");
             _cboAction.SelectedIndex = _settings.IsDeletePolicy ? 1 : 0;
-            _cboAction.Location = new Point(232, 254);
+            _cboAction.Location = new Point(232, 296);
             _cboAction.Width = 260;
             page.Controls.Add(_cboAction);
 
@@ -1197,7 +1234,7 @@ namespace ClamGuard
             intervalLabel.ForeColor = Theme.TextPrimary;
             intervalLabel.BackColor = Theme.Surface;
             intervalLabel.AutoSize = true;
-            intervalLabel.Location = new Point(0, 298);
+            intervalLabel.Location = new Point(0, 340);
             page.Controls.Add(intervalLabel);
 
             _numInterval = new NumericUpDown();
@@ -1205,7 +1242,7 @@ namespace ClamGuard
             _numInterval.Maximum = 168;
             _numInterval.Value = Math.Max(1, Math.Min(168, _settings.UpdateIntervalHours));
             _numInterval.Font = Theme.Ui(9f, FontStyle.Regular);
-            _numInterval.Location = new Point(232, 294);
+            _numInterval.Location = new Point(232, 336);
             _numInterval.Width = 70;
             page.Controls.Add(_numInterval);
 
@@ -1215,7 +1252,7 @@ namespace ClamGuard
             hours.ForeColor = Theme.TextSecondary;
             hours.BackColor = Theme.Surface;
             hours.AutoSize = true;
-            hours.Location = new Point(308, 298);
+            hours.Location = new Point(308, 340);
             page.Controls.Add(hours);
 
             Label portLabel = new Label();
@@ -1592,6 +1629,7 @@ namespace ClamGuard
             _settings.OnAccessEnabled = _chkOnAccess.Checked;
             _settings.ScanRemovableDrives = _chkRemovable.Checked;
             _settings.PauseDefender = _chkPauseDefender.Checked;
+            _settings.MaxScanFileSizeMB = (int)_numMaxFile.Value;
             _settings.QuarantineAction = _cboAction.SelectedIndex == 1 ? "delete" : "quarantine";
             _settings.UpdateIntervalHours = (int)_numInterval.Value;
             _settings.ClamdPort = (int)_numPort.Value;

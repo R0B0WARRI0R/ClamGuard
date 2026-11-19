@@ -72,7 +72,7 @@ if ($Test) {
 
 if (-not $Test) {
     Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContinue
-    $zip = Join-Path $dist 'ClamGuard-1.1.0-win.zip'
+    $zip = Join-Path $dist 'ClamGuard-1.1.1-win.zip'
     if (Test-Path $zip) { Remove-Item $zip -Force }
     $items = @($out)
     $readme = Join-Path $dist 'README.md'

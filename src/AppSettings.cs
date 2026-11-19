@@ -20,19 +20,21 @@ namespace ClamGuard
         [DataMember(Order = 7)] public string QuarantineAction;
         [DataMember(Order = 8)] public int ClamdPort;
         [DataMember(Order = 9)] public bool PauseDefender;
+        [DataMember(Order = 10)] public int MaxScanFileSizeMB;
 
         public AppSettings()
         {
             PauseDefender = true;
+            MaxScanFileSizeMB = 200;
             Normalize();
         }
 
         [OnDeserializing]
         private void OnDeserializing(StreamingContext context)
         {
-            // Los archivos antiguos no contienen PauseDefender: el valor
-            // predeterminado es pausar Defender mientras el residente esté activo.
+            // Los archivos antiguos no contienen PauseDefender...
             PauseDefender = true;
+            MaxScanFileSizeMB = 200;
         }
 
         [OnDeserialized]
@@ -60,6 +62,7 @@ namespace ClamGuard
             if (UpdateIntervalHours < 1) UpdateIntervalHours = 4;
             if (UpdateIntervalHours > 168) UpdateIntervalHours = 168;
             if (ClamdPort < 1024 || ClamdPort > 65535) ClamdPort = AppPaths.ClamdPort;
+            if (MaxScanFileSizeMB < 1 || MaxScanFileSizeMB > 4096) MaxScanFileSizeMB = 200;
             if (!string.Equals(QuarantineAction, "delete", StringComparison.OrdinalIgnoreCase))
                 QuarantineAction = "quarantine";
             else
