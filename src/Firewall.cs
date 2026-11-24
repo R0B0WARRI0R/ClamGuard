@@ -27,6 +27,31 @@ namespace ClamGuard
             }
         }
 
+        /// <summary>Copia de la política guardada al entrar en "bloquear todo".</summary>
+        public static string BackupPath
+        {
+            get { return Path.Combine(AppPaths.DataDir, "firewall-antes-de-bloquear.wfw"); }
+        }
+
+        /// <summary>
+        /// Si hay copia de "bloquear todo", la importa (vuelven las reglas y su estado
+        /// tal como estaban) y la borra. Sin copia no toca nada.
+        /// </summary>
+        private static bool RestoreBackupIfAny(out string error)
+        {
+            error = string.Empty;
+            string backup = BackupPath;
+            if (!File.Exists(backup)) return true;
+            string o, e;
+            if (!RunNetsh("advfirewall import \"" + backup + "\"", out o, out e))
+            {
+                error = "No se pudo restaurar la copia del cortafuegos (" + backup + "). " + e;
+                return false;
+            }
+            try { File.Delete(backup); } catch { }
+            return true;
+        }
+
         public static string GetStatus()
         {
             string output, error;
@@ -46,13 +71,23 @@ namespace ClamGuard
             if (mode == "allowall")
             {
                 string o, e;
+                if (!RestoreBackupIfAny(out error)) return false;
                 if (!RunNetsh("advfirewall set allprofiles state off", out o, out e)) { error = e; return false; }
-                RunNetsh("advfirewall firewall set rule all new enable=yes", out o, out e);
                 return true;
             }
             if (mode == "blockall")
             {
                 string o, e;
+                // Guardar la política actual, con el estado de cada regla, una sola vez:
+                // al salir de este modo se vuelve exactamente a ella.
+                if (!File.Exists(BackupPath))
+                {
+                    if (!RunNetsh("advfirewall export \"" + BackupPath + "\"", out o, out e))
+                    {
+                        error = "No se pudo guardar una copia del cortafuegos antes de bloquear; no se ha cambiado nada. " + e;
+                        return false;
+                    }
+                }
                 if (!RunNetsh("advfirewall set allprofiles state on", out o, out e)) { error = e; return false; }
                 if (!RunNetsh("advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound", out o, out e)) { error = e; return false; }
                 // Deshabilitar reglas existentes para que el bloqueo sea efectivo (estilo TinyWall)
@@ -62,10 +97,12 @@ namespace ClamGuard
             // active (default): block inbound, allow outbound
             {
                 string o, e;
+                // Volver a las reglas que había antes de "bloquear todo". No se usa
+                // "set rule all new enable=yes": habilitaría también las reglas que
+                // Windows trae deshabilitadas (compartir archivos, administración remota...).
+                if (!RestoreBackupIfAny(out error)) return false;
                 if (!RunNetsh("advfirewall set allprofiles state on", out o, out e)) { error = e; return false; }
                 if (!RunNetsh("advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound", out o, out e)) { error = e; return false; }
-                // Rehabilitar reglas existentes
-                RunNetsh("advfirewall firewall set rule all new enable=yes", out o, out e);
                 return true;
             }
         }
