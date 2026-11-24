@@ -68,6 +68,7 @@ namespace ClamGuard
             _settings = AppSettings.Load();
             AppPaths.EnsureLayout();
             AppLog.Init("clamguard");
+            L10n.Load(_settings.Language);
             Uninstaller.Register();
             BuildUi();
             TrySetIcon();
@@ -173,7 +174,7 @@ namespace ClamGuard
             menu.Items.Add(exit);
 
             _tray = new NotifyIcon();
-            _tray.Text = "ClamGuard";
+            _tray.Text = L10n.T("ClamGuard");
             _tray.Icon = _trayIdleIcon != null ? _trayIdleIcon : SystemIcons.Application;
             _tray.ContextMenuStrip = menu;
             _tray.Visible = true;
@@ -259,7 +260,7 @@ namespace ClamGuard
 
                 if (_trayStateItem != null)
                 {
-                    _trayStateItem.Text = "Protección residente: " + ResidentService.DescribeState(state);
+                    _trayStateItem.Text = L10n.T("Protección residente: ") + ResidentService.DescribeState(state);
                 }
                 if (_trayResidentItem != null)
                 {
@@ -423,7 +424,7 @@ namespace ClamGuard
         private void BuildUi()
         {
             SuspendLayout();
-            Text = "ClamGuard — Antivirus ClamAV";
+            Text = L10n.T("ClamGuard — Antivirus ClamAV");
             BackColor = Theme.Background;
             ClientSize = new Size(1100, 780);
             MinimumSize = new Size(980, 700);
@@ -535,13 +536,13 @@ namespace ClamGuard
             links.Padding = new Padding(0, 27, 24, 0);
             links.Margin = new Padding(0);
 
-            LinkLabel about = Links.Create("Acerca de", delegate { ShowAbout(); });
-            LinkLabel quarantine = Links.Create("Cuarentena", delegate { ShowQuarantine(); });
-            LinkLabel settings = Links.Create("Configuración", delegate { ShowSettings(); });
-            LinkLabel ioc = Links.Create("IOCs", delegate { ShowIoc(); });
-            LinkLabel firewall = Links.Create("Firewall", delegate { ShowFirewall(); });
+            LinkLabel about = Links.Create(L10n.T("menu.about"), delegate { ShowAbout(); });
+            LinkLabel quarantine = Links.Create(L10n.T("menu.quarantine"), delegate { ShowQuarantine(); });
+            LinkLabel settings = Links.Create(L10n.T("menu.settings"), delegate { ShowSettings(); });
+            LinkLabel ioc = Links.Create(L10n.T("menu.ioc"), delegate { ShowIoc(); });
+            LinkLabel firewall = Links.Create(L10n.T("menu.firewall"), delegate { ShowFirewall(); });
             LinkLabel updates = Links.Create("Actualizaciones", delegate { CheckUpdates(); });
-            LinkLabel uninstall = Links.Create("Desinstalar", delegate { ShowUninstall(); });
+            LinkLabel uninstall = Links.Create(L10n.T("menu.uninstall"), delegate { ShowUninstall(); });
             foreach (LinkLabel link in new LinkLabel[] { about, quarantine, settings, ioc, firewall, updates, uninstall })
             {
                 link.BackColor = Theme.Surface;
@@ -584,7 +585,7 @@ namespace ClamGuard
             banner.Controls.Add(_bannerText);
 
             _bannerButton = new RoundedButton();
-            _bannerButton.Text = "Instalar ClamAV";
+            _bannerButton.Text = L10n.T("Instalar ClamAV");
             _bannerButton.Style = ButtonStyle.Primary;
             _bannerButton.BackColor = Theme.AccentSoft;
             _bannerButton.Size = new Size(176, 36);
@@ -657,7 +658,7 @@ namespace ClamGuard
             Label statusLabel = status;
 
             _btnQuick = new RoundedButton();
-            _btnQuick.Text = "Análisis rápido";
+            _btnQuick.Text = L10n.T("Análisis rápido");
             _btnQuick.Style = ButtonStyle.Primary;
             _btnQuick.Location = new Point(20, 160);
             _btnQuick.Height = 38;
@@ -688,7 +689,7 @@ namespace ClamGuard
             card.Controls.Add(_pillResident);
 
             _btnResident = new RoundedButton();
-            _btnResident.Text = "Instalar residente";
+            _btnResident.Text = L10n.T("Instalar residente");
             _btnResident.Style = ButtonStyle.Primary;
             _btnResident.Location = new Point(20, 160);
             _btnResident.Height = 38;
@@ -713,7 +714,7 @@ namespace ClamGuard
             _lblSigDetail = status;
 
             _btnSignatures = new RoundedButton();
-            _btnSignatures.Text = "Comprobar y actualizar";
+            _btnSignatures.Text = L10n.T("Comprobar y actualizar");
             _btnSignatures.Style = ButtonStyle.Primary;
             _btnSignatures.Location = new Point(20, 160);
             _btnSignatures.Height = 38;
@@ -735,10 +736,10 @@ namespace ClamGuard
             Label status;
             CardPanel card = CreateBaseCard(Theme.GlyphInfo, Theme.AccentSoft, Theme.Accent,
                 "Indicadores de compromiso", "Busca IOCs (STIX2) en el equipo.", out status);
-            status.Text = "IOCs disponibles: " + IocStore.LocalIndicatorCount();
+            status.Text = L10n.T("IOCs disponibles: ") + IocStore.LocalIndicatorCount();
 
             _btnIoc = new RoundedButton();
-            _btnIoc.Text = "Buscar IOCs";
+            _btnIoc.Text = L10n.T("Buscar IOCs");
             _btnIoc.Style = ButtonStyle.Primary;
             _btnIoc.Location = new Point(20, 160);
             _btnIoc.Height = 38;
@@ -755,10 +756,10 @@ namespace ClamGuard
             Label status;
             CardPanel card = CreateBaseCard(Theme.GlyphShield, Theme.DangerSoft, Theme.Danger,
                 "Cortafuegos", "Administra el firewall de Windows.", out status);
-            status.Text = "Modo activo por defecto";
+            status.Text = L10n.T("Modo activo por defecto");
 
             _btnFirewall = new RoundedButton();
-            _btnFirewall.Text = "Abrir cortafuegos";
+            _btnFirewall.Text = L10n.T("Abrir cortafuegos");
             _btnFirewall.Style = ButtonStyle.Primary;
             _btnFirewall.Location = new Point(20, 160);
             _btnFirewall.Height = 38;
@@ -799,7 +800,7 @@ namespace ClamGuard
             card.Controls.Add(_lblPercent);
 
             _btnStop = new RoundedButton();
-            _btnStop.Text = "Detener";
+            _btnStop.Text = L10n.T("Detener");
             _btnStop.Style = ButtonStyle.Secondary;
             _btnStop.Size = new Size(92, 30);
             _btnStop.Visible = false;
@@ -1006,16 +1007,16 @@ namespace ClamGuard
 
                 if (dir == null)
                 {
-                    _lblSigDetail.Text = "ClamAV no instalado";
+                    _lblSigDetail.Text = L10n.T("ClamAV no instalado");
                     _btnSignatures.Enabled = !_busy;
                 }
                 else if (!hasDb)
                 {
-                    _lblSigDetail.Text = "Faltan las firmas de virus";
+                    _lblSigDetail.Text = L10n.T("Faltan las firmas de virus");
                 }
                 else
                 {
-                    string sigText = "Firmas: " + signatures.DateText;
+                    string sigText = L10n.T("Firmas: ") + signatures.DateText;
                     if (signatures.TotalBytes > 0) sigText += " · " + ClamAv.FormatBytes(signatures.TotalBytes);
                     _lblSigDetail.Text = sigText;
                 }
@@ -1028,15 +1029,15 @@ namespace ClamGuard
                 DateTime? lastScan = AppState.ParseUtc(appState.LastScanUtc);
                 if (lastScan.HasValue)
                 {
-                    _lblLastScan.Text = "Último análisis: " + RelativeTime(lastScan) +
+                    _lblLastScan.Text = L10n.T("Último análisis: ") + RelativeTime(lastScan) +
                         (appState.LastScanFiles > 0 ? " · " + appState.LastScanFiles.ToString("N0") + " archivos" : string.Empty);
                 }
                 else
                 {
-                    _lblLastScan.Text = "Último análisis: nunca";
+                    _lblLastScan.Text = L10n.T("Último análisis: nunca");
                 }
 
-                _lblActivity.Text = "Listo.";
+                _lblActivity.Text = L10n.T("Listo.");
             }
             catch (Exception ex)
             {
@@ -1064,9 +1065,9 @@ namespace ClamGuard
                 _bannerTitle.BackColor = Theme.WarningSoft;
                 _bannerText.BackColor = Theme.WarningSoft;
                 _bannerButton.BackColor = Theme.WarningSoft;
-                _bannerTitle.Text = "Faltan las firmas de virus";
-                _bannerText.Text = "Descarga la base de firmas de ClamAV para poder detectar amenazas.";
-                _bannerButton.Text = "Descargar firmas";
+                _bannerTitle.Text = L10n.T("Faltan las firmas de virus");
+                _bannerText.Text = L10n.T("Descarga la base de firmas de ClamAV para poder detectar amenazas.");
+                _bannerButton.Text = L10n.T("Descargar firmas");
             }
             else
             {
@@ -1078,9 +1079,9 @@ namespace ClamGuard
                 _bannerTitle.BackColor = Theme.AccentSoft;
                 _bannerText.BackColor = Theme.AccentSoft;
                 _bannerButton.BackColor = Theme.AccentSoft;
-                _bannerTitle.Text = "ClamAV no está instalado";
-                _bannerText.Text = "ClamGuard utiliza el motor gratuito ClamAV. Instálalo para empezar a proteger el equipo.";
-                _bannerButton.Text = "Instalar ClamAV";
+                _bannerTitle.Text = L10n.T("ClamAV no está instalado");
+                _bannerText.Text = L10n.T("ClamGuard utiliza el motor gratuito ClamAV. Instálalo para empezar a proteger el equipo.");
+                _bannerButton.Text = L10n.T("Instalar ClamAV");
             }
             _bannerIcon.Invalidate();
         }
@@ -1091,29 +1092,29 @@ namespace ClamGuard
             {
                 case ResidentState.Running:
                     _pillResident.SetState("Activa", Theme.SuccessSoft, Theme.Success, Theme.SuccessBorder);
-                    _btnResident.Text = "Detener residente";
+                    _btnResident.Text = L10n.T("Detener residente");
                     _btnResident.Style = ButtonStyle.Secondary;
                     break;
                 case ResidentState.Stopped:
                     _pillResident.SetState("Detenida", Theme.WarningSoft, Theme.Warning, Theme.WarningBorder);
-                    _btnResident.Text = "Activar residente";
+                    _btnResident.Text = L10n.T("Activar residente");
                     _btnResident.Style = ButtonStyle.Primary;
                     break;
                 case ResidentState.StartPending:
                 case ResidentState.StopPending:
                 case ResidentState.Paused:
                     _pillResident.SetState("Cambiando…", Theme.AccentSoft, Theme.Accent, Theme.AccentBorder);
-                    _btnResident.Text = "Espera…";
+                    _btnResident.Text = L10n.T("Espera…");
                     _btnResident.Style = ButtonStyle.Secondary;
                     break;
                 case ResidentState.NotInstalled:
                     _pillResident.SetState("No instalada", Color.FromArgb(248, 250, 252), Theme.TextMuted, Theme.Border);
-                    _btnResident.Text = "Instalar residente";
+                    _btnResident.Text = L10n.T("Instalar residente");
                     _btnResident.Style = ButtonStyle.Primary;
                     break;
                 default:
                     _pillResident.SetState("Desconocida", Color.FromArgb(248, 250, 252), Theme.TextMuted, Theme.Border);
-                    _btnResident.Text = "Protección residente";
+                    _btnResident.Text = L10n.T("Protección residente");
                     _btnResident.Style = ButtonStyle.Secondary;
                     break;
             }
@@ -1169,7 +1170,7 @@ namespace ClamGuard
             _progress.Cursor = Cursors.Default;
             _btnStop.Visible = busy && cancellable;
             _btnStop.Enabled = true;
-            _btnStop.Text = "Detener";
+            _btnStop.Text = L10n.T("Detener");
             if (!string.IsNullOrEmpty(status)) _lblActivity.Text = status;
         }
 
@@ -1180,7 +1181,7 @@ namespace ClamGuard
             {
                 _operation.Cancel();
                 _btnStop.Enabled = false;
-                _btnStop.Text = "Deteniendo…";
+                _btnStop.Text = L10n.T("Deteniendo…");
                 AppendLog(LogLevel.Warn, "Cancelación solicitada.");
             }
             catch
@@ -1378,7 +1379,7 @@ namespace ClamGuard
 
             if (result == null)
             {
-                _lblSummary.Text = "No se pudo comprobar la actualización.";
+                _lblSummary.Text = L10n.T("No se pudo comprobar la actualización.");
                 return false;
             }
 
@@ -1591,7 +1592,7 @@ namespace ClamGuard
 
             if (result == null)
             {
-                _lblSummary.Text = "La instalación no terminó correctamente.";
+                _lblSummary.Text = L10n.T("La instalación no terminó correctamente.");
                 return;
             }
 
@@ -1632,6 +1633,7 @@ namespace ClamGuard
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     _settings = AppSettings.Load();
+                    L10n.Load(_settings.Language);
                     AppendLog(LogLevel.Ok, "Configuración guardada. El residente la aplicará automáticamente.");
                     RefreshStatusAsync();
                 }
@@ -1765,7 +1767,7 @@ namespace ClamGuard
         {
             using (Form about = new Form())
             {
-                about.Text = "Acerca de ClamGuard";
+                about.Text = L10n.T("Acerca de ClamGuard");
                 about.ClientSize = new Size(520, 360);
                 about.FormBorderStyle = FormBorderStyle.FixedDialog;
                 about.MaximizeBox = false;
@@ -1776,7 +1778,7 @@ namespace ClamGuard
                 about.Font = Theme.Ui(9f, FontStyle.Regular);
 
                 Label title = new Label();
-                title.Text = "ClamGuard " + AppPaths.ProductVersion;
+                title.Text = L10n.T("ClamGuard ") + AppPaths.ProductVersion;
                 title.Font = Theme.Ui(14f, FontStyle.Bold);
                 title.ForeColor = Theme.TextPrimary;
                 title.BackColor = Theme.Surface;
@@ -1809,7 +1811,7 @@ namespace ClamGuard
                 AddAboutLink(about, "Twitch", "https://www.twitch.tv/davidcasasm", ref y);
 
                 RoundedButton close = new RoundedButton();
-                close.Text = "Cerrar";
+                close.Text = L10n.T("Cerrar");
                 close.Style = ButtonStyle.Secondary;
                 close.BackColor = Theme.Surface;
                 close.Size = new Size(104, 34);

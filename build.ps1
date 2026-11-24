@@ -52,6 +52,12 @@ foreach ($reference in $references) {
     if (Test-Path $path) { $arguments += "/r:$path" }
 }
 $arguments += $src
+# Incrustar archivos de idioma
+$langFiles = Get-ChildItem (Join-Path $root 'lang\*.json') -ErrorAction SilentlyContinue
+foreach ($lf in $langFiles) {
+    $name = 'ClamGuard.lang.' + $lf.BaseName + '.json'
+    $arguments += "/resource:$($lf.FullName),$name"
+}
 
 Write-Host "Compilando ClamGuard..."
 & $csc $arguments
@@ -71,8 +77,11 @@ if ($Test) {
 }
 
 if (-not $Test) {
+    $langDest = Join-Path $dist 'lang'
+    if (-not (Test-Path $langDest)) { New-Item -ItemType Directory -Path $langDest | Out-Null }
+    Copy-Item (Join-Path $root 'lang\*.json') $langDest -Force -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root 'README.md') $dist -Force -ErrorAction SilentlyContinue
-    $zip = Join-Path $dist 'ClamGuard-1.1.1-win.zip'
+    $zip = Join-Path $dist 'ClamGuard-1.1.2-win.zip'
     if (Test-Path $zip) { Remove-Item $zip -Force }
     $items = @($out)
     $readme = Join-Path $dist 'README.md'

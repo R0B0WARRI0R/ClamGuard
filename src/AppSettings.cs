@@ -21,11 +21,14 @@ namespace ClamGuard
         [DataMember(Order = 8)] public int ClamdPort;
         [DataMember(Order = 9)] public bool PauseDefender;
         [DataMember(Order = 10)] public int MaxScanFileSizeMB;
+        [DataMember(Order = 11)] public string Language;
 
         public AppSettings()
         {
             PauseDefender = true;
             MaxScanFileSizeMB = 200;
+            Language = "es-ES";
+            Language = "es-ES";
             Normalize();
         }
 
@@ -35,6 +38,7 @@ namespace ClamGuard
             // Los archivos antiguos no contienen PauseDefender...
             PauseDefender = true;
             MaxScanFileSizeMB = 200;
+            Language = "es-ES";
         }
 
         [OnDeserialized]
@@ -63,6 +67,10 @@ namespace ClamGuard
             if (UpdateIntervalHours > 168) UpdateIntervalHours = 168;
             if (ClamdPort < 1024 || ClamdPort > 65535) ClamdPort = AppPaths.ClamdPort;
             if (MaxScanFileSizeMB < 1 || MaxScanFileSizeMB > 4096) MaxScanFileSizeMB = 200;
+            if (string.IsNullOrEmpty(Language)) Language = "es-ES";
+            if (!string.Equals(Language, "en", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(Language, "es-ES", StringComparison.OrdinalIgnoreCase))
+                Language = "es-ES";
             if (!string.Equals(QuarantineAction, "delete", StringComparison.OrdinalIgnoreCase))
                 QuarantineAction = "quarantine";
             else
