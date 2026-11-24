@@ -7,6 +7,7 @@ namespace ClamGuard
 {
     public static class Firewall
     {
+        public static bool IsElevated { get { return Elevation.IsElevated; } }
         public static bool RunNetsh(string arguments, out string output, out string error)
         {
             output = string.Empty;
@@ -37,10 +38,16 @@ namespace ClamGuard
         public static bool SetMode(string mode, out string error)
         {
             error = string.Empty;
+            if (!Elevation.IsElevated)
+            {
+                error = "Se necesitan permisos de administrador para cambiar el cortafuegos.";
+                return false;
+            }
             if (mode == "allowall")
             {
                 string o, e;
                 if (!RunNetsh("advfirewall set allprofiles state off", out o, out e)) { error = e; return false; }
+                RunNetsh("advfirewall firewall set rule all new enable=yes", out o, out e);
                 return true;
             }
             if (mode == "blockall")
@@ -48,13 +55,17 @@ namespace ClamGuard
                 string o, e;
                 if (!RunNetsh("advfirewall set allprofiles state on", out o, out e)) { error = e; return false; }
                 if (!RunNetsh("advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound", out o, out e)) { error = e; return false; }
+                // Deshabilitar reglas existentes para que el bloqueo sea efectivo (estilo TinyWall)
+                RunNetsh("advfirewall firewall set rule all new enable=no", out o, out e);
                 return true;
             }
-            // active (default)
+            // active (default): block inbound, allow outbound
             {
                 string o, e;
                 if (!RunNetsh("advfirewall set allprofiles state on", out o, out e)) { error = e; return false; }
                 if (!RunNetsh("advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound", out o, out e)) { error = e; return false; }
+                // Rehabilitar reglas existentes
+                RunNetsh("advfirewall firewall set rule all new enable=yes", out o, out e);
                 return true;
             }
         }

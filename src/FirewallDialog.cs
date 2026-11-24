@@ -86,7 +86,7 @@ namespace ClamGuard
 
             _cboMode = new ComboBox();
             _cboMode.DropDownStyle = ComboBoxStyle.DropDownList;
-            _cboMode.Items.AddRange(new object[] { "Activo (recomendado)", "Permitir todo el trafico", "Bloquear todo el trafico" });
+            _cboMode.Items.AddRange(new object[] { "Normal (recomendado)", "Permitir salidas", "Bloquear todo", "Desactivado" });
             _cboMode.SelectedIndex = 0;
             _cboMode.Location = new Point(0, 32);
             _cboMode.Size = new Size(260, 26);
@@ -102,7 +102,7 @@ namespace ClamGuard
             modeTab.Controls.Add(applyMode);
 
             Label modeNote = new Label();
-            modeNote.Text = L10n.T("Activo: bloquea entrada, permite salida. Permitir todo: desactiva el firewall. Bloquear todo: bloquea entrada y salida.");
+            modeNote.Text = L10n.T("Normal: bloquea entrada, permite salida. Permitir salidas: permite todo saliente. Bloquear todo: bloquea entrada y salida (solo excepciones). Desactivado: permite todo.");
             modeNote.Font = Theme.Ui(8.25f, FontStyle.Regular);
             modeNote.ForeColor = Theme.TextMuted;
             modeNote.BackColor = Theme.Surface;
@@ -321,7 +321,8 @@ namespace ClamGuard
             _lstPorts.Items.Clear();
             ParseRules(rulesOutput);
             PopulatePorts("all");
-            _lblStatus.Text = L10n.T("Estado: consultado. Puertos listados: ") + _lstPorts.Items.Count;
+            _lblStatus.Text = "Estado: consultado. Puertos listados: " + _lstPorts.Items.Count +
+                (Firewall.IsElevated ? " (Administrador)" : " (Sin permisos de administrador)");
         }
 
         private void ParseRules(string output)
@@ -469,12 +470,24 @@ namespace ClamGuard
 
         private void ApplyMode_Click(object sender, EventArgs e)
         {
+            if (!Firewall.IsElevated)
+            {
+                MessageBox.Show(this, "Se necesitan permisos de administrador para cambiar el cortafuegos. Ejecuta ClamGuard como administrador.",
+                    "Cortafuegos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             string mode = "active";
-            if (_cboMode.SelectedIndex == 1) mode = "allowall";
             if (_cboMode.SelectedIndex == 2) mode = "blockall";
+            if (_cboMode.SelectedIndex == 3) mode = "allowall";
             string error;
             if (Firewall.SetMode(mode, out error))
-                MessageBox.Show(this, L10n.T("Modo aplicado correctamente."), "Cortafuegos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            {
+                if (mode == "blockall")
+                    MessageBox.Show(this, "Modo bloquear todo aplicado. Se deshabilitaron las reglas existentes. Agrega programas/puertos para permitir trafico.",
+                        "Cortafuegos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                else
+                    MessageBox.Show(this, "Modo aplicado correctamente.", "Cortafuegos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
             else
                 MessageBox.Show(this, error, "Cortafuegos", MessageBoxButtons.OK, MessageBoxIcon.Error);
             RefreshStatus();
